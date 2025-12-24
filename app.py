@@ -4,7 +4,7 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 
-# Configura a IA com a chave que vamos colocar no Coolify depois
+# Configura a IA com a chave que você colocou no Coolify
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 model = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -12,24 +12,21 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 def home():
     return "Servidor do Nutri-Bot Ativo!"
 
-@app.route('/analisar', methods=['POST'])
-def analisar():
+# ESSA É A PARTE QUE O BOTPRESS VAI CHAMAR
+@app.route('/gerar-plano', methods=['POST'])
+def gerar_plano():
     dados = request.json
-    tipo = dados.get('tipo') # exame, refeicao ou receita
-    conteudo = dados.get('conteudo') # URL da imagem ou texto
+    user_id = dados.get('user_id') # Recebe o ID do aluno
+
+    # Instrução para a IA criar o plano
+    prompt = f"Você é um nutricionista e personal trainer experiente. " \
+             f"Gere um plano de treino e dieta resumido para o aluno {user_id}. " \
+             f"Seja motivador e profissional."
+
+    response = model.generate_content(prompt)
     
-    prompts = {
-        "exame": "Aja como Nutricionista. Leia este exame e liste valores alterados de Glicose, Ferritina e Vitamina D.",
-        "refeicao": "Analise a foto. Estime calorias e macros (Proteína, Carbo, Gordura) deste prato.",
-        "receita": "Sugira uma receita saudável usando estes ingredientes."
-    }
-    
-    try:
-        response = model.generate_content([prompts.get(tipo, "Analise:"), conteudo])
-        return jsonify({"resultado": response.text})
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
+    # Devolve o plano pronto para o Botpress
+    return jsonify({"plano_gerado": response.text})
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5000)
